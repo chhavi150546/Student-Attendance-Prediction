@@ -1,0 +1,24 @@
+{% extends "base.html" %}{% block title %}Update attendance{% endblock %}
+{% block content %}
+<h1>Update attendance</h1><p class="sub">Enter your lecture counts – the preview updates live. Press save to record it (your teacher will see the latest saved numbers).</p>
+<div class="grid g2 stack-sm" style="align-items:start">
+  <form class="card" id="predict-form" autocomplete="off" novalidate>
+    {% if not start %}<div class="rec" style="margin-top:0;margin-bottom:6px">First time here? These are sample numbers – replace them with your own.</div>{% endif %}
+    {% for key, label, hint, default in fields %}
+      {% set val = start[key] if start else default %}
+      <label for="{{ key }}">{{ label }} <span class="muted" style="font-weight:400">· {{ hint }}</span></label>
+      <div class="stepper">
+        <button type="button" data-step="-1" aria-label="Decrease {{ label }}">−</button>
+        <input id="{{ key }}" name="{{ key }}" type="number" inputmode="numeric" step="1" min="{{ limits[key][0] }}" max="{{ limits[key][1] }}" value="{{ val }}" data-default="{{ val }}" required>
+        <button type="button" data-step="1" aria-label="Increase {{ label }}">+</button>
+      </div>
+    {% endfor %}
+    <div class="formerr" id="form-err" hidden></div>
+    <div style="display:flex;gap:10px;margin-top:24px">
+      <button class="btn" id="save" type="submit" style="flex:1">💾 Save attendance</button>
+      <button class="btn ghost" id="reset" type="button">Reset</button>
+    </div>
+  </form>
+  <div class="card" id="result"></div>
+</div>
+{% endblock %}

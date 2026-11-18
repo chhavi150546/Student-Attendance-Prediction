@@ -1,0 +1,40 @@
+{% extends "base.html" %}{% from "_parts.html" import ring, stack with context %}{% block title %}Track your attendance{% endblock %}
+{% block content %}
+<section class="hero hero-wrap">
+  <div>
+    <h1>Know your attendance <span>before it's too late</span></h1>
+    <p>Enter the lectures delivered, attended, and your medical and duty leave. AttendIQ works out your percentage, tells you exactly how many lectures you can still miss, and predicts where you're heading.</p>
+    <div class="actions">
+      {% if user %}<a class="btn" href="{{ url_for('dashboard') }}">Open my dashboard</a>
+      {% else %}<a class="btn" href="{{ url_for('register') }}">Get started – it's free</a><a class="btn ghost" href="{{ url_for('login') }}">Log in</a>{% endif %}
+    </div>
+  </div>
+  <div class="card hero-card">
+    {{ ring(82.5, 'ok', 'attendance') }}
+    <div class="big-msg" style="margin-bottom:12px">You can still miss <b>8</b> lectures</div>
+    <div class="stack"><i class="c-att" style="width:72%"></i><i class="c-med" style="width:6%"></i><i class="c-duty" style="width:4.5%"></i><i class="c-abs" style="width:17.5%"></i></div>
+    <div class="legend" style="justify-content:center"><span style="--lc:var(--low)">Attended</span><span style="--lc:var(--blue)">Medical</span><span style="--lc:var(--violet)">Duty</span><span style="--lc:var(--high)">Absent</span></div>
+  </div>
+</section>
+
+<h2 class="section-title">For students</h2>
+<section class="grid g3">
+  <div class="card feature" style="--c:var(--accent)"><div class="ico">🎯</div><h3>Live percentage</h3><p class="muted">Type your four numbers and see your attendance %, status and prediction update instantly.</p></div>
+  <div class="card feature" style="--c:var(--low)"><div class="ico">🧮</div><h3>Lecture planner</h3><p class="muted">Know how many lectures you can still skip – or must attend in a row – to stay above {{ required|int }}%.</p></div>
+  <div class="card feature" style="--c:var(--blue)"><div class="ico">📈</div><h3>Track your trend</h3><p class="muted">Every update is saved, so you can watch your attendance and the predicted trend over the semester.</p></div>
+</section>
+
+<h2 class="section-title">For teachers</h2>
+<section class="grid g3">
+  <div class="card feature" style="--c:var(--violet)"><div class="ico">🧑‍🏫</div><h3>Live class overview</h3><p class="muted">The moment a student signs up they appear in your class list – and their numbers update as they do.</p></div>
+  <div class="card feature" style="--c:var(--high)"><div class="ico">🚨</div><h3>Shortage alerts</h3><p class="muted">See who is below {{ required|int }}% and who the model flags as high risk, sorted so help goes where it's needed.</p></div>
+  <div class="card feature" style="--c:var(--med)"><div class="ico">🗂️</div><h3>Full student record</h3><p class="muted">Open any student for their complete history, trend and your private notes, or export the class to CSV.</p></div>
+</section>
+
+<section class="card gap-top steps">
+  <h2>How it works</h2>
+  <div class="grid g3"><div><div class="n">1</div><b>Enter your lectures</b><p class="muted">Delivered, attended, medical leave and duty leave – nothing else.</p></div>
+  <div><div class="n">2</div><b>We do the maths</b><p class="muted">Attendance % is worked out exactly; a model predicts where it's heading.</p></div>
+  <div><div class="n">3</div><b>Act early</b><p class="muted">Get clear numbers on what to attend, and teachers get an early warning.</p></div></div>
+</section>
+{% endblock %}

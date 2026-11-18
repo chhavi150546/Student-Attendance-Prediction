@@ -1,0 +1,52 @@
+{% extends "base.html" %}{% from "_parts.html" import state, status_pill, bar_cell with context %}{% block title %}Class overview{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Class overview</h1><p class="sub">Every registered student with their latest attendance. New sign-ups appear here automatically.</p></div>
+  <div class="actions"><a class="btn ghost small" href="{{ url_for('profile') }}">🔑 Teacher code</a>{% if rows %}<a class="btn ghost small" href="{{ url_for('export_class') }}">⬇ Export CSV</a>{% endif %}</div></div>
+
+<div class="grid g5">
+  <div class="card stat" style="--c:var(--accent)"><div class="ic">🎓</div><div><b>{{ total }}</b><span>Students</span></div></div>
+  <div class="card stat" style="--c:var(--blue)"><div class="ic">📊</div><div><b>{{ (avg ~ '%') if avg is not none else '–' }}</b><span>Class average</span></div></div>
+  <div class="card stat" style="--c:var(--high)"><div class="ic">⚠️</div><div><b>{{ shortage }}</b><span>Below {{ required|int }}%</span></div></div>
+  <div class="card stat" style="--c:var(--med)"><div class="ic">🔥</div><div><b>{{ counts.HIGH }}</b><span>High risk</span></div></div>
+  <div class="card stat" style="--c:var(--muted)"><div class="ic">⏳</div><div><b>{{ no_data }}</b><span>Awaiting data</span></div></div>
+</div>
+
+{% if not rows %}
+<div class="card empty gap-top"><h2>No students yet</h2><p>Share the site with your students. They'll appear here as soon as they sign up.</p></div>
+{% else %}
+<div class="grid g3 gap-top">
+  <div class="card"><h2>Attendance distribution</h2>
+    <div class="dist">{% for b in bands %}<div class="d"><span>{{ b.label }}</span><div class="bar"><i class="b{{ loop.index0 }}" style="width:{{ b.n / max_band * 100 }}%"></i></div><b class="num">{{ b.n }}</b></div>{% endfor %}</div>
+    <div class="hint">Students who have saved at least one record.</div></div>
+  <div class="card"><h2>Needs attention</h2>
+    {% for r in attention %}<div class="attn"><div class="who"><div class="avatar">{{ r.name[:1]|upper }}</div><div><a href="{{ url_for('student_detail', sid=r.id) }}">{{ r.name }}</a><small>{{ r.roll_no }} · {{ r.class_name }}</small></div></div><div style="text-align:right"><b class="num">{{ r.attendance_pct|round(1) }}%</b><br>{{ status_pill(r) }}</div></div>
+    {% else %}<div class="empty" style="padding:20px 0">🎉 Nobody is below {{ required|int }}% or high risk.</div>{% endfor %}</div>
+  <div class="card"><h2>By class</h2>
+    <table class="mini-table"><thead><tr><th>Class</th><th>Students</th><th>Avg</th><th>Short</th></tr></thead><tbody>
+    {% for c in classes %}<tr><td><b>{{ c.name }}</b></td><td class="num">{{ c.n }}</td><td class="num">{{ (c.avg ~ '%') if c.avg is not none else '–' }}</td><td class="num">{{ c.short }}</td></tr>{% endfor %}</tbody></table></div>
+</div>
+
+<div class="card gap-top">
+  <h2>All students</h2>
+  <div class="filters"><input id="search" placeholder="Search name, roll no, class…">
+    {% if classes|length > 1 %}<select id="class-filter" data-fkey="class" aria-label="Filter by class"><option value="">All classes</option>{% for c in classes %}<option value="{{ c.name }}">{{ c.name }}</option>{% endfor %}</select>{% endif %}
+    <a class="chip on" href="#" data-fkey="state" data-fval="">All (<span id="count">{{ rows|length }}</span>)</a>
+    <a class="chip" href="#" data-fkey="state" data-fval="short">Shortage</a><a class="chip" href="#" data-fkey="state" data-fval="ok">OK</a><a class="chip" href="#" data-fkey="state" data-fval="none">No data</a>
+    <span class="sep"></span>
+    {% for k in ['HIGH','MEDIUM','LOW'] %}<a class="chip" href="#" data-fkey="risk" data-fval="{{ k }}">{{ k.title() }} risk</a>{% endfor %}</div>
+  <div class="table-wrap"><table data-table><thead><tr>
+    <th class="sortable">Student</th><th class="sortable">Roll no</th><th class="sortable">Class</th><th class="sortable">Delivered</th><th class="sortable">Attended</th><th class="sortable">Medical / Duty</th><th class="sortable">Attendance</th><th>Status</th><th class="sortable">Predicted</th><th>Risk</th><th class="sortable">Updated</th></tr></thead><tbody>
+  {% for r in rows %}<tr data-risk="{{ r.risk_level or '' }}" data-state="{{ r.state }}" data-class="{{ r.class_name or '' }}">
+    <td data-v="{{ r.name|lower }}"><div class="who"><div class="avatar">{{ r.name[:1]|upper }}</div><div><a href="{{ url_for('student_detail', sid=r.id) }}">{{ r.name }}</a><small>{{ r.email }}</small></div></div></td>
+    <td>{{ r.roll_no or '–' }}</td><td>{{ r.class_name or '–' }}</td>
+    {% if r.has_data %}
+    <td class="num">{{ r.delivered }}</td><td class="num">{{ r.attended }}</td><td class="num" data-v="{{ r.medical + r.duty }}">{{ r.medical }} / {{ r.duty }}</td>
+    <td data-v="{{ r.attendance_pct }}">{{ bar_cell(r.attendance_pct, state(r.stats, r.risk_level)) }}</td><td>{{ status_pill(r) }}</td>
+    <td class="num" data-v="{{ r.predicted_attendance }}">{{ r.predicted_attendance }}%</td><td><span class="badge {{ r.risk_level }}">{{ r.risk_level }}</span></td><td class="muted" title="{{ r.updated }}" data-v="{{ r.updated }}">{{ r.updated[:10] }}</td>
+    {% else %}
+    <td class="muted">–</td><td class="muted">–</td><td class="muted">–</td><td class="muted" data-v="-1">–</td><td>{{ status_pill(r) }}</td><td class="muted">–</td><td class="muted">–</td><td class="muted" title="Joined" data-v="{{ r.joined }}">joined {{ r.joined[:10] }}</td>
+    {% endif %}</tr>{% endfor %}
+  </tbody></table></div>
+</div>
+{% endif %}
+{% endblock %}

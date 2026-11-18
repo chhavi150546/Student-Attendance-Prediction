@@ -1,0 +1,37 @@
+{% extends "base.html" %}{% block title %}Sign up{% endblock %}
+{% block content %}
+<div class="card auth">
+  <h1>Create your account</h1><p class="sub">Takes less than a minute.</p>
+  <form method="post" data-busy>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label>I am a…</label>
+    <div class="seg">
+      <input type="radio" name="role" id="r-s" value="student" {{ 'checked' if form.role != 'teacher' }}><label for="r-s">🎓 Student</label>
+      <input type="radio" name="role" id="r-t" value="teacher" {{ 'checked' if form.role == 'teacher' }}><label for="r-t">🧑‍🏫 Teacher</label>
+    </div>
+    <label for="name">Full name</label><input id="name" name="name" required minlength="2" autofocus autocomplete="name" value="{{ form.name }}">
+    <label for="email">Email</label><input id="email" name="email" type="email" required autocomplete="email" value="{{ form.email }}">
+
+    <div class="role-box" id="box-student">
+      <div class="two">
+        <div><label for="roll_no">Roll number</label><input id="roll_no" name="roll_no" maxlength="30" placeholder="e.g. 21CS047" value="{{ form.roll_no }}"></div>
+        <div><label for="class_name">Class / section</label><input id="class_name" name="class_name" maxlength="40" placeholder="e.g. CSE-3A" value="{{ form.class_name }}"></div>
+      </div>
+      <div class="hint">Your teacher uses these to find you in the class list.</div>
+    </div>
+    <div class="role-box" id="box-teacher" hidden>
+      <label for="teacher_code">Teacher access code</label>
+      <input id="teacher_code" name="teacher_code" autocomplete="off" placeholder="TCH-XXXX-XXXX" style="text-transform:uppercase">
+      <div class="hint">Given by your institution. Without it, a teacher account can't be created.</div>
+    </div>
+
+    <label for="password">Password</label>
+    <div class="pw"><input id="password" name="password" type="password" required minlength="8" autocomplete="new-password" data-meter="m1"><button type="button">Show</button></div>
+    <div class="meter" id="m1"><div></div></div><div class="hint">8+ characters with a letter and a number. <b id="m1-label"></b></div>
+    <label for="confirm">Confirm password</label>
+    <input id="confirm" name="confirm" type="password" required autocomplete="new-password" data-match="password">
+    <button class="btn block" style="margin-top:22px" type="submit">Create account</button>
+  </form>
+  <p class="muted" style="text-align:center;margin-bottom:0">Already registered? <a href="{{ url_for('login') }}">Log in</a></p>
+</div>
+{% endblock %}

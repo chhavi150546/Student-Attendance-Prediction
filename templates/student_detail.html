@@ -1,0 +1,48 @@
+{% extends "base.html" %}{% from "_parts.html" import ring, state, headline, stack, stat_cards with context %}{% block title %}{{ s.name }}{% endblock %}
+{% block content %}
+<a class="back" href="{{ url_for('class_overview') }}">← Back to class overview</a>
+<div class="profile-head"><div class="avatar lg">{{ s.name[:1]|upper }}</div>
+  <div><h1 style="margin:0">{{ s.name }}</h1>
+  <div class="info"><span>{{ s.email }}</span><span>Roll <b>{{ s.roll_no or '–' }}</b></span><span>Class <b>{{ s.class_name or '–' }}</b></span><span>Joined {{ s.created_at[:10] }}</span><span>{{ rows|length }} record(s)</span></div></div></div>
+
+{% if not latest %}
+  <div class="card empty"><h2>No attendance entered yet</h2><p>{{ s.name.split()[0] }} has signed up but hasn't recorded any lectures. Their numbers will appear here as soon as they do.</p></div>
+{% else %}
+{% set st = state(stats, latest.risk_level) %}
+<div class="grid g21">
+  <div class="card hero-stat">
+    <div>{{ ring(latest.attendance_pct, st, 'attendance') }}</div>
+    <div>
+      <span class="pill {{ 'short' if stats.shortage else 'ok' }}">{{ 'Below required' if stats.shortage else 'Above required' }}</span>
+      <div class="big-msg">{{ headline(stats) }}</div>
+      {{ stack(stats) }}
+      <div class="hint" style="margin-top:10px">Last updated {{ latest.created_at }}{% if stats.medical or stats.duty %} · own presence without leaves: {{ stats.raw_pct }}%{% endif %}</div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>🔮 Prediction</h2>
+    <div class="row"><span>Predicted next period</span><b class="num">{{ latest.predicted_attendance }}%</b></div>
+    <div class="row"><span>Risk level</span><span class="badge {{ latest.risk_level }}">{{ latest.risk_level }}</span></div>
+    <div class="row"><span>Chance of falling short</span><b class="num">{{ latest.risk_probability }}%</b></div>
+    <div class="rec">{{ latest.recommendation }}</div>
+  </div>
+</div>
+<div class="gap-top">{{ stat_cards(stats) }}</div>
+<div class="card gap-top"><h2>Attendance trend</h2><div id="trend"></div></div>
+<div class="card gap-top"><h2>Full history</h2>
+  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Delivered</th><th>Attended</th><th>Medical</th><th>Duty</th><th>Absent</th><th>Attendance</th><th>Predicted</th><th>Risk</th></tr></thead><tbody>
+  {% for r in rows %}<tr><td>{{ r.created_at }}</td><td class="num">{{ r.delivered }}</td><td class="num">{{ r.attended }}</td><td class="num">{{ r.medical }}</td><td class="num">{{ r.duty }}</td><td class="num">{{ r.absent }}</td><td class="num"><b>{{ r.attendance_pct|round(1) }}%</b></td><td class="num">{{ r.predicted_attendance }}%</td><td><span class="badge {{ r.risk_level }}">{{ r.risk_level }}</span></td></tr>{% endfor %}
+  </tbody></table></div></div>
+{% endif %}
+
+<div class="card gap-top"><h2>📝 Teacher notes</h2><p class="muted" style="margin-top:-6px">Visible to teachers only – students can't see these.</p>
+  <form method="post" action="{{ url_for('add_note', sid=s.id) }}"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <textarea name="body" maxlength="500" required placeholder="e.g. Spoke to parent – long illness, medical certificate pending."></textarea>
+    <button class="btn small" style="margin-top:10px" type="submit">Add note</button></form>
+  <div style="margin-top:16px">
+  {% for n in notes %}<div class="note"><small>{{ n.teacher_name }} · {{ n.created_at }}</small><p>{{ n.body }}</p>
+    {% if n.teacher_id == user.id %}<form method="post" action="{{ url_for('delete_note', nid=n.id) }}" data-confirm="Delete this note?" style="margin:8px 0 0"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn danger small" type="submit">Delete</button></form>{% endif %}</div>
+  {% else %}<div class="empty" style="padding:14px 0">No notes yet.</div>{% endfor %}</div>
+</div>
+{% endblock %}
+{% block scripts %}{% if latest %}<script>drawTrend(document.getElementById('trend'), {{ trend|tojson }});</script>{% endif %}{% endblock %}

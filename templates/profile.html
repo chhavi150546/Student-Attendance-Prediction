@@ -1,0 +1,33 @@
+{% extends "base.html" %}{% block title %}Profile{% endblock %}
+{% block content %}
+<div class="profile-head"><div class="avatar lg">{{ user.name[:1]|upper }}</div>
+  <div><h1 style="margin:0">{{ user.name }}</h1>
+  <div class="info"><span>{{ user.email }}</span><span>{{ user.role.title() }}</span>{% if user.role == 'student' %}<span>Roll <b>{{ user.roll_no or '–' }}</b></span><span>Class <b>{{ user.class_name or '–' }}</b></span><span>{{ n }} record(s)</span>{% endif %}<span>Joined {{ user.created_at[:10] }}</span></div></div></div>
+
+{% if teacher_code %}
+<div class="card" style="margin-bottom:18px">
+  <h2>🔑 Teacher access code</h2>
+  <p class="muted" style="margin-top:-6px">New teachers need this code to sign up. Share it only with colleagues – students must not have it.</p>
+  <div class="codebox">{{ teacher_code }}</div>
+  {% if code_from_env %}<p class="hint">This code is set by the <code>TEACHER_CODE</code> environment variable; change it there.</p>
+  {% else %}<form method="post" data-confirm="Generate a new code? The current one will stop working." style="margin-top:14px"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="new_code"><button class="btn ghost small" type="submit">↻ Generate a new code</button></form>{% endif %}
+</div>
+{% endif %}
+
+<div class="grid g2 stack-sm" style="align-items:start">
+  <form class="card" method="post"><h2>Your details</h2><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="name">
+    <label style="margin-top:0">Name</label><input name="name" required minlength="2" value="{{ user.name }}">
+    {% if user.role == 'student' %}<div class="two"><div><label>Roll number</label><input name="roll_no" required maxlength="30" value="{{ user.roll_no or '' }}"></div><div><label>Class / section</label><input name="class_name" required maxlength="40" value="{{ user.class_name or '' }}"></div></div>{% endif %}
+    <button class="btn" style="margin-top:14px" type="submit">Save details</button></form>
+  <form class="card" method="post" data-busy><h2>Change password</h2><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="password">
+    <label style="margin-top:0">Current password</label><input name="current" type="password" required autocomplete="current-password">
+    <label>New password</label><input id="new" name="new" type="password" required minlength="8" autocomplete="new-password" data-meter="m2"><div class="meter" id="m2"><div></div></div><div class="hint"><b id="m2-label"></b></div>
+    <label>Confirm new password</label><input name="confirm" type="password" required autocomplete="new-password" data-match="new">
+    <button class="btn" style="margin-top:14px" type="submit">Update password</button></form>
+</div>
+<form class="card danger-zone" method="post" style="margin-top:18px" data-confirm="This permanently deletes your account and all your data. Continue?">
+  <h2>Delete account</h2><p class="muted">Permanently removes your account{% if user.role == 'student' %} and every saved attendance record{% endif %}.</p>
+  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><input type="hidden" name="action" value="delete">
+  <input name="current" type="password" placeholder="Confirm with your password" required style="max-width:320px"><br>
+  <button class="btn danger" style="margin-top:12px" type="submit">Delete my account</button></form>
+{% endblock %}

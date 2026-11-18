@@ -1,0 +1,50 @@
+{# Shared building blocks. Import with:  {% from "_parts.html" import ... with context %} #}
+{% macro state(stats, risk) -%}{{ 'bad' if stats.shortage else ('ok' if risk == 'LOW' else 'warn') }}{%- endmacro %}
+
+{% macro ring(pct, st, label='attendance') -%}
+{% set C = 326.73 %}
+<div class="ring">
+  <svg viewBox="0 0 120 120" aria-hidden="true">
+    <circle class="track" cx="60" cy="60" r="52" fill="none" stroke-width="11"/>
+    <circle class="fill s-{{ st }}" cx="60" cy="60" r="52" fill="none" stroke-width="11" transform="rotate(-90 60 60)" stroke-dasharray="{{ (C * pct / 100)|round(1) }} {{ C }}"/>
+    <line class="tick" x1="60" y1="3" x2="60" y2="17" transform="rotate({{ required * 3.6 }} 60 60)"/>
+  </svg>
+  <div class="center"><div><b>{{ pct|round(1) }}%</b><br><span>{{ label }}</span></div></div>
+</div>
+{%- endmacro %}
+
+{% macro headline(s) -%}
+{% if s.shortage %}{% if s.must_attend is none %}You are below {{ '%g'|format(required) }}%.{% else %}Attend your next <b>{{ s.must_attend }}</b> lecture{{ '' if s.must_attend == 1 else 's' }} in a row to reach {{ '%g'|format(required) }}%.{% endif %}
+{% else %}You can still miss <b>{{ s.can_skip }}</b> lecture{{ '' if s.can_skip == 1 else 's' }} and stay at or above {{ '%g'|format(required) }}%.{% endif %}
+{%- endmacro %}
+
+{% macro stack(s) -%}
+<div class="stack" role="img" aria-label="Lecture breakdown">
+  <i class="c-att" style="width:{{ s.attended / s.delivered * 100 }}%" title="Attended {{ s.attended }}"></i>
+  <i class="c-med" style="width:{{ s.medical / s.delivered * 100 }}%" title="Medical leave {{ s.medical }}"></i>
+  <i class="c-duty" style="width:{{ s.duty / s.delivered * 100 }}%" title="Duty leave {{ s.duty }}"></i>
+  <i class="c-abs" style="width:{{ s.absent / s.delivered * 100 }}%" title="Absent {{ s.absent }}"></i>
+</div>
+<div class="legend">
+  <span style="--lc:var(--low)">Attended {{ s.attended }}</span><span style="--lc:var(--blue)">Medical {{ s.medical }}</span>
+  <span style="--lc:var(--violet)">Duty {{ s.duty }}</span><span style="--lc:var(--high)">Absent {{ s.absent }}</span>
+</div>
+{%- endmacro %}
+
+{% macro stat_cards(s) -%}
+<div class="grid g5">
+  <div class="card stat" style="--c:var(--accent)"><div class="ic">📚</div><div><b>{{ s.delivered }}</b><span>Lectures delivered</span></div></div>
+  <div class="card stat" style="--c:var(--low)"><div class="ic">✅</div><div><b>{{ s.attended }}</b><span>Attended</span></div></div>
+  <div class="card stat" style="--c:var(--blue)"><div class="ic">🩺</div><div><b>{{ s.medical }}</b><span>Medical leave</span></div></div>
+  <div class="card stat" style="--c:var(--violet)"><div class="ic">🏅</div><div><b>{{ s.duty }}</b><span>Duty leave</span></div></div>
+  <div class="card stat" style="--c:var(--high)"><div class="ic">❌</div><div><b>{{ s.absent }}</b><span>Absent</span></div></div>
+</div>
+{%- endmacro %}
+
+{% macro status_pill(r) -%}
+{% if not r.has_data %}<span class="pill none">No data</span>{% elif r.state == 'short' %}<span class="pill short">Shortage</span>{% else %}<span class="pill ok">OK</span>{% endif %}
+{%- endmacro %}
+
+{% macro bar_cell(pct, st) -%}
+<div class="meter-cell"><b class="num">{{ pct|round(1) }}%</b><div class="mini"><i class="s-{{ st }}" style="width:{{ [pct, 100]|min }}%"></i><u style="left:{{ required }}%"></u></div></div>
+{%- endmacro %}

@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Attendance Register</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,500&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#F5F5F1; --surface:#FFFFFF; --ink:#1C2321; --ink-soft:#5B655F;
+    --accent:#2B4570; --accent-soft:#EAEEF3; --line:#DAD8CE;
+    --safe:#256B4C; --safe-bg:#EAF3EE; --safe-border:#2F7D5D;
+    --medium:#8A5A14; --medium-bg:#FBF1E3; --medium-border:#B07C22;
+    --high:#9C3226; --high-bg:#FBEAE7; --high-border:#AE3B2E;
+  }
+  *{ box-sizing:border-box; }
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Public Sans', system-ui, sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  .page{ display:flex; justify-content:center; padding:40px 16px 64px; }
+  .sheet{ width:100%; max-width:760px; background:var(--surface); border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+  .sheet-band{ height:5px; background:var(--accent); }
+
+  header{ padding:36px 40px 6px; }
+  h1{ font-family:'Newsreader', Georgia, serif; font-weight:600; font-size:clamp(26px,4vw,36px); margin:0 0 10px; letter-spacing:-0.01em; }
+  .lede{ color:var(--ink-soft); font-size:16px; line-height:1.55; margin:0; max-width:48ch; }
+
+  form{ padding:28px 40px 4px; }
+  .field-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(118px,1fr)); gap:22px 18px; margin-bottom:26px; }
+  .field{ display:flex; flex-direction:column; justify-content:flex-end; }
+  .field label{ display:block; font-size:13.5px; line-height:1.35; color:var(--ink-soft); margin-bottom:8px; }
+  .field input{
+    width:100%; border:none; border-bottom:1.5px solid var(--line); background:transparent;
+    padding:6px 2px 8px; font-family:'Public Sans', system-ui, sans-serif; font-size:17px; color:var(--ink);
+  }
+  .field input:focus{ outline:none; border-bottom-color:var(--accent); }
+  .field input:focus-visible{ outline:2px solid var(--accent); outline-offset:3px; border-radius:2px; }
+
+  .actions{ display:flex; align-items:center; gap:16px; margin-bottom:8px; }
+  button[type=submit]{
+    appearance:none; border:none; background:var(--accent); color:#fff;
+    font-family:'Public Sans', system-ui, sans-serif; font-weight:600; font-size:15px;
+    padding:13px 26px; border-radius:4px; cursor:pointer;
+  }
+  button[type=submit]:hover{ background:#233A5E; }
+  button[type=submit]:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; }
+
+  .result{ padding:14px 40px 8px; border-top:1px solid var(--line); margin-top:24px; }
+
+  /* Risk colour, shared by the predicted dot, its legend swatch and the stamp */
+  .risk-low{ --risk:var(--safe-border); }
+  .risk-medium{ --risk:var(--medium-border); }
+  .risk-high{ --risk:var(--high-border); }
+
+  /* The attendance track: current -> predicted, against the required line */
+  .track-block{ position:relative; height:58px; margin:14px 8px 2px; }
+  .req-tag{ position:absolute; top:0; font-size:12px; font-weight:600; color:var(--ink); transform:translateX(-50%); white-space:nowrap; }
+  .req-line{ position:absolute; top:19px; height:30px; width:2px; margin-left:-1px; background:var(--ink); }
+  .track-bar{ position:absolute; top:30px; left:0; right:0; height:8px; background:var(--line); border-radius:4px; }
+  .connector{ position:absolute; top:32.5px; height:3px; background:var(--ink-soft); border-radius:2px; opacity:.65; transition:left .25s ease, width .25s ease; }
+  .dot{
+    position:absolute; top:34px; width:15px; height:15px; border-radius:50%;
+    transform:translate(-50%,-50%); border:2.5px solid var(--surface);
+    box-shadow:0 0 0 1.5px currentColor;
+    transition:left .25s ease, background-color .25s ease, color .25s ease;
+  }
+  .dot.current{ background:var(--ink-soft); color:var(--ink-soft); }
+  .dot.predicted{ background:var(--risk, var(--accent)); color:var(--risk, var(--accent)); }
+
+  .legend{ display:flex; gap:20px; flex-wrap:wrap; font-size:12.5px; color:var(--ink-soft); margin:4px 0 0 8px; }
+  .legend-item{ display:inline-flex; align-items:center; gap:7px; }
+  .swatch{ display:inline-block; width:11px; height:11px; border-radius:50%; }
+  .swatch.current{ background:var(--ink-soft); }
+  .swatch.predicted{ background:var(--risk, var(--accent)); }
+  .swatch.line{ width:2px; height:13px; border-radius:0; background:var(--ink); }
+
+  .stats-row{ display:grid; grid-template-columns:repeat(3, auto); justify-content:start; gap:14px 30px; margin:24px 0 22px; }
+  .stats-row > div{ display:flex; flex-direction:column; justify-content:flex-end; }
+  .stat-label{ display:block; font-size:13px; line-height:1.3; color:var(--ink-soft); margin-bottom:4px; }
+  .stat-value{ font-family:'Newsreader', Georgia, serif; font-size:30px; font-weight:600; display:inline-block; }
+
+  .verdict{ display:flex; align-items:center; gap:14px; margin:4px 0 14px; flex-wrap:wrap; }
+  .stamp{
+    display:inline-block; font-weight:600; font-size:14px; padding:6px 14px;
+    border-radius:3px; border:1.5px solid; transform:rotate(-2deg);
+    transition:background-color .2s ease, color .2s ease, border-color .2s ease;
+  }
+  .stamp.risk-low{ color:var(--safe); background:var(--safe-bg); border-color:var(--safe-border); }
+  .stamp.risk-medium{ color:var(--medium); background:var(--medium-bg); border-color:var(--medium-border); }
+  .stamp.risk-high{ color:var(--high); background:var(--high-bg); border-color:var(--high-border); }
+  .verdict-line{ margin:0; font-size:15.5px; color:var(--ink); }
+
+  .recommendation{
+    font-size:15.5px; line-height:1.6; color:var(--ink); background:var(--accent-soft);
+    border-left:3px solid var(--accent); padding:14px 18px; border-radius:0 4px 4px 0; margin:6px 0 0;
+  }
+
+  .footnote{ padding:22px 40px 32px; font-size:12.5px; color:var(--ink-soft); line-height:1.55; border-top:1px solid var(--line); margin-top:26px; }
+
+  @keyframes pulse{ 0%{ transform:scale(1); } 35%{ transform:scale(1.07); } 100%{ transform:scale(1); } }
+  .pulse{ animation:pulse .32s ease; }
+
+  @media (prefers-reduced-motion: reduce){
+    .pulse{ animation:none; }
+    .dot, .connector, .stamp{ transition:none; }
+  }
+  @media (max-width:480px){
+    header, form, .result, .footnote{ padding-left:22px; padding-right:22px; }
+    h1{ font-size:24px; }
+    .stats-row{ grid-template-columns:repeat(3, 1fr); gap:14px; }
+    .stat-label{ font-size:12.5px; }
+    .stat-value{ font-size:25px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="sheet">
+    <div class="sheet-band"></div>
+    <header>
+      <h1>The Attendance Register</h1>
+      <p class="lede">Enter a student's recent record to see where their attendance is headed, and whether it clears the line.</p>
+    </header>
+
+    <form id="predict-form">
+      <div class="field-grid">
+        <div class="field">
+          <label for="delivered">Lectures delivered</label>
+          <input type="number" id="delivered" min="1" max="2000" step="1" value="100" required>
+        </div>
+        <div class="field">
+          <label for="attended">Lectures attended</label>
+          <input type="number" id="attended" min="0" max="2000" step="1" value="62" required>
+        </div>
+        <div class="field">
+          <label for="medical">Medical leave (lectures)</label>
+          <input type="number" id="medical" min="0" max="2000" step="1" value="4" required>
+        </div>
+        <div class="field">
+          <label for="duty">Duty leave (lectures)</label>
+          <input type="number" id="duty" min="0" max="2000" step="1" value="2" required>
+        </div>
+      </div>
+      <div class="actions">
+        <button type="submit">Predict attendance</button>
+      </div>
+    </form>
+
+    <section class="result" aria-live="polite">
+      <div class="track-block">
+        <span class="req-tag" id="req-tag">Required</span>
+        <div class="req-line" id="req-line"></div>
+        <div class="track-bar"></div>
+        <div class="connector" id="connector"></div>
+        <div class="dot current" id="dot-current"></div>
+        <div class="dot predicted" id="dot-predicted"></div>
+      </div>
+      <div class="legend">
+        <span class="legend-item"><span class="swatch current"></span>Current</span>
+        <span class="legend-item"><span class="swatch predicted" id="swatch-predicted"></span>Predicted</span>
+        <span class="legend-item"><span class="swatch line"></span>Required</span>
+      </div>
+
+      <div class="stats-row">
+        <div>
+          <span class="stat-label">Current attendance</span>
+          <span class="stat-value" id="stat-current">–</span>
+        </div>
+        <div>
+          <span class="stat-label">Predicted attendance</span>
+          <span class="stat-value" id="stat-predicted">–</span>
+        </div>
+        <div>
+          <span class="stat-label">Required attendance</span>
+          <span class="stat-value" id="stat-required">–</span>
+        </div>
+      </div>
+
+      <div class="verdict">
+        <span class="stamp" id="stamp">–</span>
+        <p class="verdict-line" id="verdict-line"></p>
+      </div>
+
+      <p class="recommendation" id="recommendation"></p>
+    </section>
+
+    <p class="footnote">Risk comes from a Logistic Regression and the expected percentage from a Linear Regression, both trained on a synthetic dataset built to mirror typical relationships between these factors. Retrain on your institution's records, then run export_demo.py, to make it yours.</p>
+  </div>
+</div>
+
+<script>
+  // Coefficients copied exactly from the trained scikit-learn models
+  // (StandardScaler + LogisticRegression + LinearRegression). Same formulas,
+  // same numbers, so this reproduces the Python model's predictions.
+  // Refresh with:  python export_demo.py
+  /* MODEL_START */
+  const MODEL = {
+  "features": [
+    "Attendance_Pct",
+    "Medical_Pct",
+    "Duty_Pct",
+    "Lectures_Delivered"
+  ],
+  "scalerMean": [
+    73.46607291666672,
+    5.58024974695003,
+    4.610725796624925,
+    70.82291666666667
+  ],
+  "scalerScale": [
+    14.27453188428667,
+    4.88880895516128,
+    4.075077950512076,
+    29.018203622778913
+  ],
+  "logregCoef": [
+    4.813322231282758,
+    -0.49938023849884783,
+    -0.5917117833015081,
+    -0.044698600588019784
+  ],
+  "logregIntercept": -0.5944098120289821,
+  "linregCoef": [
+    15.621642148106659,
+    -1.985330042078187,
+    -1.939625959892207,
+    -0.17780123120335348
+  ],
+  "linregIntercept": 72.84968750000006,
+  "required": 75.0
+};
+  /* MODEL_END */
+
+  const $ = (id) => document.getElementById(id);
+  const sigmoid = (z) => 1 / (1 + Math.exp(-z));
+  const round1 = (x) => Math.round(x * 10) / 10;
+  const clampPct = (x) => Math.min(100, Math.max(0, x));
+
+  const COUNT_MEDICAL = true, COUNT_DUTY = true;   // keep in step with attendance_predictor.py
+
+  function stats(input){
+    const d = input.Lectures_Delivered, counted = input.Lectures_Attended
+      + (COUNT_MEDICAL ? input.Medical_Leave : 0) + (COUNT_DUTY ? input.Duty_Leave : 0);
+    const req = MODEL.required, shortage = counted * 100 < req * d;
+    return {
+      counted, shortage, pct: Math.round(counted / d * 10000) / 100,
+      canSkip: shortage ? 0 : Math.max(0, Math.floor(counted * 100 / req - d + 1e-9)),
+      mustAttend: shortage ? Math.max(0, Math.ceil((req * d - 100 * counted) / (100 - req) - 1e-9)) : 0,
+    };
+  }
+
+  function featureValues(input){
+    const s = stats(input), d = input.Lectures_Delivered;
+    return { Attendance_Pct: s.pct, Medical_Pct: 100 * input.Medical_Leave / d,
+             Duty_Pct: 100 * input.Duty_Leave / d, Lectures_Delivered: d };
+  }
+
+  function predict(input){
+    const f = featureValues(input);
+    const scaled = MODEL.features.map((name, i) => (f[name] - MODEL.scalerMean[i]) / MODEL.scalerScale[i]);
+
+    let logit = MODEL.logregIntercept;
+    let linPred = MODEL.linregIntercept;
+    scaled.forEach((v, i) => {
+      logit += MODEL.logregCoef[i] * v;
+      linPred += MODEL.linregCoef[i] * v;
+    });
+
+    const probSufficient = sigmoid(logit);
+    const probInsufficient = 1 - probSufficient;
+
+    let riskLevel = "LOW";
+    if (probInsufficient >= 0.66) riskLevel = "HIGH";
+    else if (probInsufficient >= 0.33) riskLevel = "MEDIUM";
+
+    return { predictedAttendance: clampPct(linPred), probSufficient, probInsufficient, riskLevel };
+  }
+
+  const lectures = (n) => n + " lecture" + (n === 1 ? "" : "s");
+
+  function recommendation(riskLevel, input){
+    const s = stats(input), req = MODEL.required + "%";
+    if (s.shortage) return `You are below ${req}. Attend your next ${lectures(s.mustAttend)} in a row, without missing any, to get back to ${req}.`;
+    if (riskLevel === "HIGH") return `You're above ${req} right now but the trend is risky - you can only afford to miss ${lectures(s.canSkip)} more. Avoid absences.`;
+    if (riskLevel === "MEDIUM") return `Your attendance is borderline - you can miss at most ${lectures(s.canSkip)} more before dropping below ${req}.`;
+    return `You're on track. You can still miss ${lectures(s.canSkip)} without falling below ${req}.`;
+  }
+
+  function verdictSentence(r){
+    const req = round1(MODEL.required);
+    if (r.riskLevel === "LOW") return `On track to clear the ${req}% requirement (${Math.round(r.probSufficient * 100)}% likely).`;
+    if (r.riskLevel === "MEDIUM") return `Borderline: about a ${Math.round(r.probInsufficient * 100)}% chance of falling short of the ${req}% requirement.`;
+    return `Likely to fall short of the ${req}% requirement (${Math.round(r.probInsufficient * 100)}% chance).`;
+  }
+
+  function pulse(el){
+    el.classList.remove("pulse");
+    void el.offsetWidth;
+    el.classList.add("pulse");
+  }
+
+  function render(input, animate){
+    const r = predict(input);
+    const level = r.riskLevel.toLowerCase();
+    const curPct = clampPct(stats(input).pct);
+    const predPct = clampPct(r.predictedAttendance);
+    const reqPct = clampPct(MODEL.required);
+
+    $("stat-current").textContent = round1(stats(input).pct) + "%";
+    $("stat-predicted").textContent = round1(r.predictedAttendance) + "%";
+    $("stat-required").textContent = round1(MODEL.required) + "%";
+    if (animate) pulse($("stat-predicted"));
+
+    $("stamp").textContent = { low: "Low risk", medium: "Medium risk", high: "High risk" }[level];
+    $("stamp").className = "stamp risk-" + level;
+    $("verdict-line").textContent = verdictSentence(r);
+    $("recommendation").textContent = recommendation(r.riskLevel, input);
+
+    $("req-tag").textContent = "Required " + round1(MODEL.required) + "%";
+    $("req-tag").style.left = reqPct + "%";
+    $("req-line").style.left = reqPct + "%";
+
+    $("dot-current").style.left = curPct + "%";
+    $("dot-predicted").style.left = predPct + "%";
+    $("dot-predicted").className = "dot predicted risk-" + level;
+    $("swatch-predicted").className = "swatch predicted risk-" + level;
+
+    $("connector").style.left = Math.min(curPct, predPct) + "%";
+    $("connector").style.width = Math.abs(predPct - curPct) + "%";
+  }
+
+  function readInput(){
+    return {
+      Lectures_Delivered: parseInt($("delivered").value, 10),
+      Lectures_Attended: parseInt($("attended").value, 10),
+      Medical_Leave: parseInt($("medical").value, 10),
+      Duty_Leave: parseInt($("duty").value, 10),
+    };
+  }
+
+  function inputProblem(i){
+    if (Object.values(i).some(Number.isNaN)) return "Enter whole numbers in every box.";
+    if (i.Lectures_Delivered < 1) return "Lectures delivered must be at least 1.";
+    if (Math.min(i.Lectures_Attended, i.Medical_Leave, i.Duty_Leave) < 0) return "Counts cannot be negative.";
+    const used = i.Lectures_Attended + i.Medical_Leave + i.Duty_Leave;
+    if (used > i.Lectures_Delivered) return `Attended + medical + duty (${used}) is more than the ${i.Lectures_Delivered} lectures delivered.`;
+    return "";
+  }
+
+  $("predict-form").addEventListener("submit", function(e){
+    e.preventDefault();
+    const input = readInput(), problem = inputProblem(input);
+    if (problem) { $("verdict-line").textContent = problem; $("recommendation").textContent = ""; return; }
+    render(input, true);
+  });
+
+  render(readInput(), false);
+</script>
+</body>
+</html>

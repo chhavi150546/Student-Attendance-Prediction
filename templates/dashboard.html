@@ -1,0 +1,48 @@
+{% extends "base.html" %}{% from "_parts.html" import ring, state, headline, stack, stat_cards with context %}{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Hi {{ user.name.split()[0] }} 👋</h1><p class="sub">{% if user.roll_no %}{{ user.roll_no }} · {{ user.class_name }} — {% endif %}here's where your attendance stands.</p></div>
+  <a class="btn" href="{{ url_for('predict_page') }}">＋ Update attendance</a></div>
+{% if not total %}
+  <div class="card empty"><h2>No attendance recorded yet</h2><p>Add your lecture numbers to see your percentage, prediction and planner – and so your teacher can see them too.</p><a class="btn" href="{{ url_for('predict_page') }}">Add my attendance</a></div>
+{% else %}
+{% set st = state(stats, latest.risk_level) %}
+<div class="grid g21">
+  <div class="card hero-stat">
+    <div>{{ ring(latest.attendance_pct, st, 'attendance') }}
+      <div class="hint" style="text-align:center;margin-top:6px">▏ marks the required {{ required|int }}%</div></div>
+    <div>
+      <span class="pill {{ 'short' if stats.shortage else 'ok' }}">{{ 'Below required' if stats.shortage else 'Above required' }}</span>
+      <div class="big-msg">{{ headline(stats) }}</div>
+      {{ stack(stats) }}
+      <div class="hint" style="margin-top:10px">Last updated {{ latest.created_at }}{% if stats.medical or stats.duty %} · your own presence without leaves: {{ stats.raw_pct }}%{% endif %}</div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>🔮 Prediction</h2>
+    <div class="row"><span>Predicted next period</span><b class="num">{{ latest.predicted_attendance }}%</b></div>
+    <div class="row"><span>Risk level</span><span class="badge {{ latest.risk_level }}">{{ latest.risk_level }}</span></div>
+    <div class="row"><span>Chance of falling short</span><b class="num">{{ latest.risk_probability }}%</b></div>
+    <div class="rec">{{ latest.recommendation }}</div>
+  </div>
+</div>
+
+<div class="gap-top">{{ stat_cards(stats) }}</div>
+
+<div class="grid g21 gap-top">
+  <div class="card"><h2>Attendance trend</h2><div id="trend"></div></div>
+  <div class="card planner" id="planner" data-counted="{{ stats.counted }}" data-delivered="{{ stats.delivered }}">
+    <h2>🧮 Lecture planner</h2><p class="muted" style="margin-top:-6px">Where will you land after your next lectures?</p>
+    <label for="pl-next">Upcoming lectures: <b id="pl-n">20</b></label><input type="range" id="pl-next" min="0" max="100" value="20">
+    <label for="pl-att">I will attend: <b id="pl-a">20</b></label><input type="range" id="pl-att" min="0" max="20" value="20">
+    <div class="row" style="margin-top:12px"><span>Attendance would be</span><output id="pl-out">–</output></div>
+    <div class="hint" id="pl-msg"></div>
+  </div>
+</div>
+
+<div class="card gap-top"><div style="display:flex;justify-content:space-between;align-items:center"><h2>Recent updates</h2><a href="{{ url_for('history') }}">View all →</a></div>
+  <div class="table-wrap"><table><thead><tr><th>Date</th><th>Delivered</th><th>Attended</th><th>Attendance</th><th>Predicted</th><th>Risk</th></tr></thead><tbody>
+  {% for r in recent %}<tr><td>{{ r.created_at }}</td><td class="num">{{ r.delivered }}</td><td class="num">{{ r.attended }}</td><td class="num"><b>{{ r.attendance_pct|round(1) }}%</b></td><td class="num">{{ r.predicted_attendance }}%</td><td><span class="badge {{ r.risk_level }}">{{ r.risk_level }}</span></td></tr>{% endfor %}
+  </tbody></table></div></div>
+{% endif %}
+{% endblock %}
+{% block scripts %}{% if total %}<script>drawTrend(document.getElementById('trend'), {{ trend|tojson }});</script>{% endif %}{% endblock %}

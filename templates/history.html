@@ -1,0 +1,20 @@
+{% extends "base.html" %}{% block title %}History{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>Attendance history</h1><p class="sub"><span id="count">{{ rows|length }}</span> saved record(s)</p></div>
+{% if rows %}<a class="btn ghost small" href="{{ url_for('export_history') }}">⬇ Export CSV</a>{% endif %}</div>
+{% if not rows %}
+  <div class="card empty"><p>Nothing saved yet.</p><a class="btn" href="{{ url_for('predict_page') }}">Add my attendance</a></div>
+{% else %}
+<div class="card">
+  <div class="filters"><input id="search" placeholder="Search…">
+    <a class="chip on" href="#" data-fkey="risk" data-fval="">All</a>
+    {% for k in ['HIGH','MEDIUM','LOW'] %}<a class="chip" href="#" data-fkey="risk" data-fval="{{ k }}">{{ k.title() }}</a>{% endfor %}</div>
+  <div class="table-wrap"><table data-table><thead><tr>
+    <th class="sortable">Date</th><th class="sortable">Delivered</th><th class="sortable">Attended</th><th class="sortable">Medical</th><th class="sortable">Duty</th><th class="sortable">Absent</th><th class="sortable">Attendance</th><th class="sortable">Predicted</th><th>Risk</th><th></th></tr></thead><tbody>
+  {% for r in rows %}<tr data-risk="{{ r.risk_level }}"><td>{{ r.created_at }}</td><td class="num">{{ r.delivered }}</td><td class="num">{{ r.attended }}</td><td class="num">{{ r.medical }}</td><td class="num">{{ r.duty }}</td><td class="num">{{ r.absent }}</td>
+    <td class="num" data-v="{{ r.attendance_pct }}"><b>{{ r.attendance_pct|round(1) }}%</b></td><td class="num" data-v="{{ r.predicted_attendance }}">{{ r.predicted_attendance }}%</td><td><span class="badge {{ r.risk_level }}">{{ r.risk_level }}</span></td>
+    <td><form method="post" action="{{ url_for('delete_record', rid=r.id) }}" data-confirm="Delete this record?" style="margin:0"><input type="hidden" name="csrf_token" value="{{ csrf_token() }}"><button class="btn danger small" type="submit">Delete</button></form></td></tr>{% endfor %}
+  </tbody></table></div>
+</div>
+{% endif %}
+{% endblock %}
